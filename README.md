@@ -166,6 +166,13 @@ Support
 
 If you're having any problem, please [raise an issue](https://github.com/resin-io/nplugm/issues/new) on GitHub.
 
+ChangeLog
+---------
+
+### v1.0.1
+
+Fix issue with `fs-plus` being declared as a dev dependency.
+
 License
 -------
 
