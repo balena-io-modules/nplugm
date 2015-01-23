@@ -102,7 +102,7 @@ describe 'nplugm:', ->
 			for npmPath in @npmPaths
 				expect(fsPlus.isAbsolute(npmPath)).to.be.true
 
-	describe '#getPluginsByGlob()', ->
+	describe '#load()', ->
 
 		describe 'given all valid plugins', ->
 
@@ -113,30 +113,45 @@ describe 'nplugm:', ->
 							'package.json': JSON.stringify({})
 						'two':
 							'package.json': JSON.stringify({})
-						'three':
-							'package.json': JSON.stringify({})
 
 				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
 				@getPluginsPathsByGlobStub.returns [
 					path.join('/', 'node_modules', 'one')
 					path.join('/', 'node_modules', 'two')
-					path.join('/', 'node_modules', 'three')
 				]
-
-				@plugins = nplugm.getPluginsByGlob('my-plugins-*')
 
 			afterEach ->
 				mockFs.restore()
 				@getPluginsPathsByGlobStub.restore()
 
-			it 'should return an array of length 3', ->
-				expect(@plugins).to.have.length(3)
+			it 'should load all the plugins', (done) ->
+				spy = sinon.spy()
 
-			it 'should contain all instances of Plugin', ->
-				for plugin in @plugins
+				nplugm.load 'my-plugin-*', spy, (error) ->
+					expect(error).to.not.exist
+					expect(spy).to.have.callCount(2)
+					done()
+
+			it 'should call the plugin callback with error and plugin args', (done) ->
+				pluginCallbackSpy = sinon.spy (error, plugin) ->
+					expect(error).to.not.exist
 					expect(plugin).to.be.an.instanceof(Plugin)
 
-		describe 'given one non valid plugin and valid plugins', ->
+				nplugm.load 'my-plugin-*', pluginCallbackSpy, (error) ->
+					expect(error).to.not.exist
+					done()
+
+			it 'should provide a loadedPlugins array to the callback', (done) ->
+				nplugm.load 'my-plugin-*', null, (error, loadedPlugins) ->
+					expect(error).to.not.exist
+					expect(loadedPlugins).to.have.length(2)
+
+					for loadedPlugin in loadedPlugins
+						expect(loadedPlugin).to.be.an.instanceof(Plugin)
+
+					done()
+
+		describe 'given one non valid plugin and one valid plugin', ->
 
 			beforeEach ->
 				mockFs
@@ -144,21 +159,27 @@ describe 'nplugm:', ->
 						'one':
 							'package.json': JSON.stringify({})
 						'two': {}
-						'three':
-							'package.json': JSON.stringify({})
 
 				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
 				@getPluginsPathsByGlobStub.returns [
 					path.join('/', 'node_modules', 'one')
 					path.join('/', 'node_modules', 'two')
-					path.join('/', 'node_modules', 'three')
 				]
 
 			afterEach ->
 				mockFs.restore()
 				@getPluginsPathsByGlobStub.restore()
 
-			it 'should throw an error', ->
-				expect ->
-					nplugm.getPluginsByGlob('my-plugins-*')
-				.to.throw(Error)
+			it 'should call plugin callback twice', (done) ->
+				spy = sinon.spy()
+
+				nplugm.load 'my-plugin-*', spy, (error) ->
+					expect(error).to.not.exist
+					expect(spy).to.have.callCount(2)
+					done()
+
+			it 'should only load one plugin', (done) ->
+				nplugm.load 'my-plugin-*', null, (error, loadedPlugins) ->
+					expect(error).to.not.exist
+					expect(loadedPlugins).to.have.length(1)
+					done()

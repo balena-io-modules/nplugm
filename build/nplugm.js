@@ -39,10 +39,29 @@ exports.getPluginsPathsByGlob = function(nameGlob) {
   return result;
 };
 
-exports.getPluginsByGlob = function(pluginGlob) {
-  var pluginsPaths;
-  pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob);
-  return _.map(pluginsPaths, function(pluginPath) {
-    return new Plugin(pluginPath);
-  });
+exports.load = function(pluginGlob, pluginCallback, callback) {
+  var error, loadedPlugins, plugin, pluginPath, pluginsPaths, _i, _len;
+  try {
+    pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob);
+  } catch (_error) {
+    error = _error;
+    return callback(error);
+  }
+  loadedPlugins = [];
+  for (_i = 0, _len = pluginsPaths.length; _i < _len; _i++) {
+    pluginPath = pluginsPaths[_i];
+    try {
+      plugin = new Plugin(pluginPath);
+      loadedPlugins.push(plugin);
+      if (typeof pluginCallback === "function") {
+        pluginCallback(null, plugin);
+      }
+    } catch (_error) {
+      error = _error;
+      if (typeof pluginCallback === "function") {
+        pluginCallback(error);
+      }
+    }
+  }
+  return typeof callback === "function" ? callback(null, loadedPlugins) : void 0;
 };

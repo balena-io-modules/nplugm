@@ -28,7 +28,20 @@ exports.getPluginsPathsByGlob = (nameGlob) ->
 
 	return result
 
-exports.getPluginsByGlob = (pluginGlob) ->
-	pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob)
-	return _.map pluginsPaths, (pluginPath) ->
-		return new Plugin(pluginPath)
+exports.load = (pluginGlob, pluginCallback, callback) ->
+	try
+		pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob)
+	catch error
+		return callback(error)
+
+	loadedPlugins = []
+
+	for pluginPath in pluginsPaths
+		try
+			plugin = new Plugin(pluginPath)
+			loadedPlugins.push(plugin)
+			pluginCallback?(null, plugin)
+		catch error
+			pluginCallback?(error)
+
+	return callback?(null, loadedPlugins)
