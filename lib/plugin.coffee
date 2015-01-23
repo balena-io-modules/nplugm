@@ -3,29 +3,50 @@ fs = require('fs')
 fsPlus = require('fs-plus')
 _ = require('lodash')
 
+PACKAGE_JSON = 'package.json'
+
 module.exports = class Plugin
 
-	constructor: (pluginPath) ->
-		if not pluginPath?
+	constructor: (@path) ->
+
+		if not @path?
 			throw new Error('Missing plugin path')
 
-		if not _.isString(pluginPath) or _.isEmpty(pluginPath)
-			throw new Error("Invalid plugin path: #{pluginPath}")
+		if not _.isString(@path) or _.isEmpty(@path)
+			throw new Error("Invalid plugin path: #{@path}")
 
-		if not fs.existsSync(pluginPath)
-			throw new Error("Plugin does not exist: #{pluginPath}")
+		if not fs.existsSync(@path)
+			throw new Error("Plugin does not exist: #{@path}")
 
-		if not fsPlus.isDirectorySync(pluginPath)
-			throw new Error("Invalid plugin path: #{pluginPath}")
+		if not fsPlus.isDirectorySync(@path)
+			throw new Error("Invalid plugin path: #{@path}")
 
-		if not fs.existsSync(path.join(pluginPath, 'package.json'))
-			throw new Error("Plugin missing package.json: #{pluginPath}")
+		@manifestPath = @_getAbsoluteFilePath(PACKAGE_JSON)
 
-		@path = pluginPath
-		@manifest = @_readJSON('package.json')
+		if not fs.existsSync(@manifestPath)
+			throw new Error("Plugin missing package.json: #{@path}")
+
+		@manifest = @_readJSON(PACKAGE_JSON)
+
+	require: ->
+		pluginEntryPoint = @manifest.main
+
+		if _.isEmpty(pluginEntryPoint)
+			throw new Error("Missing main property: #{@manifestPath}")
+
+		absolutePluginEntryPoint = @_getAbsoluteFilePath(pluginEntryPoint)
+
+		# TODO: This piece of code is untested, as there doesn't seem
+		# to be an easy way to mock NodeJS's require() built in function.
+		try
+			result = require(absolutePluginEntryPoint)
+		catch
+			throw new Error("Error loading plugin: #{@path}")
+
+		return result
 
 	_readFile: (filePath) ->
-		absoluteFilePath = path.join(@path, filePath)
+		absoluteFilePath = @_getAbsoluteFilePath(filePath)
 
 		if not fs.existsSync(absoluteFilePath)
 			throw new Error("File not found: #{absoluteFilePath}")
@@ -42,7 +63,11 @@ module.exports = class Plugin
 		try
 			result = JSON.parse(fileContents)
 		catch
-			absoluteFilePath = path.join(@path, filePath)
+			absoluteFilePath = @_getAbsoluteFilePath(filePath)
 			throw new Error("Invalid JSON file: #{absoluteFilePath}")
 
 		return result
+
+	_getAbsoluteFilePath: (filePath) ->
+		return @path if _.isEmpty(filePath)
+		return path.join(@path, filePath)

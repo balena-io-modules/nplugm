@@ -93,6 +93,27 @@ describe 'Plugin:', ->
 			it 'should append the contents of package.json to manifest', ->
 				expect(@plugin.manifest).to.deep.equal(@packageJSON)
 
+	describe '#require()', ->
+
+		describe 'given a manifest without main', ->
+
+			beforeEach ->
+				mockFs
+					'/plugin/package.json': JSON.stringify
+						name: 'myPlugin'
+						description: 'My plugin'
+
+				@plugin = new Plugin(path.join('/', 'plugin'))
+
+			afterEach ->
+				mockFs.restore()
+
+			it 'should throw an error', ->
+				packageJSONPath = path.join(@plugin.path, 'package.json')
+				expect =>
+					@plugin.require()
+				.to.throw("Missing main property: #{packageJSONPath}")
+
 	describe '#_readFile()', ->
 
 		describe 'given a file that exists', ->
@@ -189,3 +210,28 @@ describe 'Plugin:', ->
 				expect =>
 					@plugin._readJSON('hello')
 				.to.throw("Invalid JSON file: #{path.join(@plugin.path, 'hello')}")
+
+	describe '#_getAbsoluteFilePath()', ->
+
+		beforeEach ->
+			mockFs
+				'/plugin':
+					'package.json': JSON.stringify({})
+
+			@plugin = new Plugin(path.join('/', 'plugin'))
+
+		afterEach ->
+			mockFs.restore()
+
+		describe 'given no path', ->
+
+			it 'should return the plugin path', ->
+				result = @plugin._getAbsoluteFilePath()
+				expect(result).to.equal(@plugin.path)
+
+		describe 'given a path', ->
+
+			it 'should prepend the plugin path', ->
+				result = @plugin._getAbsoluteFilePath('hello')
+				expectedPath = path.join(@plugin.path, 'hello')
+				expect(result).to.equal(expectedPath)
