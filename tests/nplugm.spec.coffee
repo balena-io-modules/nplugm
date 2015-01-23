@@ -18,17 +18,21 @@ describe 'nplugm:', ->
 
 		describe 'given no glob', ->
 
-			it 'should throw an error', ->
-				expect ->
-					nplugm.getPluginsPathsByGlob()
-				.to.throw('Missing glob')
+			it 'should throw an error', (done) ->
+				nplugm.getPluginsPathsByGlob null, (error, plugins) ->
+					expect(error).to.be.an.instanceof(Error)
+					expect(error.message).to.equal('Missing glob')
+					expect(plugins).to.not.exist
+					done()
 
 		describe 'given an invalid glob', ->
 
-			it 'should throw an error', ->
-				expect ->
-					nplugm.getPluginsPathsByGlob([ 'glob' ])
-				.to.throw('Invalid glob')
+			it 'should throw an error', (done) ->
+				nplugm.getPluginsPathsByGlob [ 'glob' ], (error, plugins) ->
+					expect(error).to.be.an.instanceof(Error)
+					expect(error.message).to.equal('Invalid glob')
+					expect(plugins).to.not.exist
+					done()
 
 		describe 'given a glob that does not matches anything', ->
 
@@ -36,13 +40,14 @@ describe 'nplugm:', ->
 				@globSyncStub = sinon.stub(glob, 'sync')
 				@globSyncStub.returns []
 
-				@nplugms = nplugm.getPluginsPathsByGlob('myGlob*')
-
 			afterEach ->
 				@globSyncStub.restore()
 
-			it 'should return an empty array', ->
-				expect(@nplugms).to.deep.equal([])
+			it 'should return an empty array', (done) ->
+				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
+					expect(error).to.not.exist
+					expect(plugins).to.deep.equal([])
+					done()
 
 		describe 'given a glob that matches packages', ->
 
@@ -61,31 +66,43 @@ describe 'nplugm:', ->
 					'three'
 				]
 
-				@plugins = nplugm.getPluginsPathsByGlob('myGlob*')
-
 			afterEach ->
 				@getNpmPathsStub.restore()
 				@globSyncStub.restore()
 
-			it 'should return an array', ->
-				expect(@plugins).to.be.an.instanceof(Array)
+			it 'should return an array', (done) ->
+				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
+					expect(error).to.not.exist
+					expect(plugins).to.be.an.instanceof(Array)
+					done()
 
-			it 'should have the proper length', ->
-				expect(@plugins).to.have.length(3)
+			it 'should have the proper length', (done) ->
+				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
+					expect(error).to.not.exist
+					expect(plugins).to.have.length(3)
+					done()
 
-			it 'should contain absolute paths', ->
-				for pluginPath in @plugins
-					expect(fsPlus.isAbsolute(pluginPath)).to.be.true
+			it 'should contain absolute paths', (done) ->
+				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
+					expect(error).to.not.exist
+					for pluginPath in plugins
+						expect(fsPlus.isAbsolute(pluginPath)).to.be.true
+					done()
 
-			it 'should return the appropriate paths', ->
-				if os.platform() is 'win32'
-					expect(@plugins[0]).to.equal('C:\\node_modules\\one')
-					expect(@plugins[1]).to.equal('C:\\node_modules\\two')
-					expect(@plugins[2]).to.equal('C:\\node_modules\\three')
-				else
-					expect(@plugins[0]).to.equal('/usr/lib/node_modules/one')
-					expect(@plugins[1]).to.equal('/usr/lib/node_modules/two')
-					expect(@plugins[2]).to.equal('/usr/lib/node_modules/three')
+			it 'should return the appropriate paths', (done) ->
+				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
+					expect(error).to.not.exist
+
+					if os.platform() is 'win32'
+						expect(plugins[0]).to.equal('C:\\node_modules\\one')
+						expect(plugins[1]).to.equal('C:\\node_modules\\two')
+						expect(plugins[2]).to.equal('C:\\node_modules\\three')
+					else
+						expect(plugins[0]).to.equal('/usr/lib/node_modules/one')
+						expect(plugins[1]).to.equal('/usr/lib/node_modules/two')
+						expect(plugins[2]).to.equal('/usr/lib/node_modules/three')
+
+					done()
 
 	describe '#getNpmPaths()', ->
 
@@ -115,7 +132,7 @@ describe 'nplugm:', ->
 							'package.json': JSON.stringify({})
 
 				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
-				@getPluginsPathsByGlobStub.returns [
+				@getPluginsPathsByGlobStub.yields null, [
 					path.join('/', 'node_modules', 'one')
 					path.join('/', 'node_modules', 'two')
 				]
@@ -161,7 +178,7 @@ describe 'nplugm:', ->
 						'two': {}
 
 				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
-				@getPluginsPathsByGlobStub.returns [
+				@getPluginsPathsByGlobStub.yields null, [
 					path.join('/', 'node_modules', 'one')
 					path.join('/', 'node_modules', 'two')
 				]

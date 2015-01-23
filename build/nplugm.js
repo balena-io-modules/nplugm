@@ -1,6 +1,8 @@
-var Plugin, fs, glob, path, yeoman, _;
+var Plugin, async, fs, glob, path, yeoman, _;
 
 _ = require('lodash');
+
+async = require('async');
 
 fs = require('fs');
 
@@ -16,19 +18,19 @@ exports.getNpmPaths = function() {
   return yeoman.createEnv().getNpmPaths();
 };
 
-exports.getPluginsPathsByGlob = function(nameGlob) {
+exports.getPluginsPathsByGlob = function(pluginGlob, callback) {
   var foundModules, npmPath, npmPaths, result, _i, _len;
-  if (nameGlob == null) {
-    throw new Error('Missing glob');
+  if (pluginGlob == null) {
+    return callback(new Error('Missing glob'));
   }
-  if (!_.isString(nameGlob)) {
-    throw new Error('Invalid glob');
+  if (!_.isString(pluginGlob)) {
+    return callback(new Error('Invalid glob'));
   }
   npmPaths = exports.getNpmPaths();
   result = [];
   for (_i = 0, _len = npmPaths.length; _i < _len; _i++) {
     npmPath = npmPaths[_i];
-    foundModules = glob.sync(nameGlob, {
+    foundModules = glob.sync(pluginGlob, {
       cwd: npmPath
     });
     foundModules = _.map(foundModules, function(foundModule) {
@@ -36,32 +38,32 @@ exports.getPluginsPathsByGlob = function(nameGlob) {
     });
     result = result.concat(foundModules);
   }
-  return result;
+  return callback(null, result);
 };
 
 exports.load = function(pluginGlob, pluginCallback, callback) {
-  var error, loadedPlugins, plugin, pluginPath, pluginsPaths, _i, _len;
-  try {
-    pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob);
-  } catch (_error) {
-    error = _error;
-    return callback(error);
-  }
-  loadedPlugins = [];
-  for (_i = 0, _len = pluginsPaths.length; _i < _len; _i++) {
-    pluginPath = pluginsPaths[_i];
-    try {
-      plugin = new Plugin(pluginPath);
-      loadedPlugins.push(plugin);
-      if (typeof pluginCallback === "function") {
-        pluginCallback(null, plugin);
+  return async.waterfall([
+    function(callback) {
+      return exports.getPluginsPathsByGlob(pluginGlob, callback);
+    }, function(pluginsPaths, callback) {
+      var error, loadedPlugins, plugin, pluginPath, _i, _len;
+      loadedPlugins = [];
+      for (_i = 0, _len = pluginsPaths.length; _i < _len; _i++) {
+        pluginPath = pluginsPaths[_i];
+        try {
+          plugin = new Plugin(pluginPath);
+          loadedPlugins.push(plugin);
+          if (typeof pluginCallback === "function") {
+            pluginCallback(null, plugin);
+          }
+        } catch (_error) {
+          error = _error;
+          if (typeof pluginCallback === "function") {
+            pluginCallback(error);
+          }
+        }
       }
-    } catch (_error) {
-      error = _error;
-      if (typeof pluginCallback === "function") {
-        pluginCallback(error);
-      }
+      return callback(null, loadedPlugins);
     }
-  }
-  return typeof callback === "function" ? callback(null, loadedPlugins) : void 0;
+  ], callback);
 };
