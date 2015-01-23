@@ -2,8 +2,7 @@ path = require('path')
 fs = require('fs')
 fsPlus = require('fs-plus')
 _ = require('lodash')
-
-PACKAGE_JSON = 'package.json'
+utils = require('./utils')
 
 module.exports = class Plugin
 
@@ -21,12 +20,12 @@ module.exports = class Plugin
 		if not fsPlus.isDirectorySync(@path)
 			throw new Error("Invalid plugin path: #{@path}")
 
-		@manifestPath = @_getAbsoluteFilePath(PACKAGE_JSON)
+		@manifestPath = @_getAbsoluteFilePath('package.json')
 
 		if not fs.existsSync(@manifestPath)
 			throw new Error("Plugin missing package.json: #{@path}")
 
-		@manifest = @_readJSON(PACKAGE_JSON)
+		@manifest = utils.readJSON(@manifestPath)
 
 	require: ->
 		pluginEntryPoint = @manifest.main
@@ -42,29 +41,6 @@ module.exports = class Plugin
 			result = require(absolutePluginEntryPoint)
 		catch
 			throw new Error("Error loading plugin: #{@path}")
-
-		return result
-
-	_readFile: (filePath) ->
-		absoluteFilePath = @_getAbsoluteFilePath(filePath)
-
-		if not fs.existsSync(absoluteFilePath)
-			throw new Error("File not found: #{absoluteFilePath}")
-
-		if not fsPlus.isFileSync(absoluteFilePath)
-			throw new Error("Not a file: #{absoluteFilePath}")
-
-		return fs.readFileSync absoluteFilePath,
-			encoding: 'utf8'
-
-	_readJSON: (filePath) ->
-		fileContents = @_readFile(filePath)
-
-		try
-			result = JSON.parse(fileContents)
-		catch
-			absoluteFilePath = @_getAbsoluteFilePath(filePath)
-			throw new Error("Invalid JSON file: #{absoluteFilePath}")
 
 		return result
 

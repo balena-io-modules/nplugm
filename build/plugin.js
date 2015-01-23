@@ -1,4 +1,4 @@
-var PACKAGE_JSON, Plugin, fs, fsPlus, path, _;
+var Plugin, fs, fsPlus, path, utils, _;
 
 path = require('path');
 
@@ -8,7 +8,7 @@ fsPlus = require('fs-plus');
 
 _ = require('lodash');
 
-PACKAGE_JSON = 'package.json';
+utils = require('./utils');
 
 module.exports = Plugin = (function() {
   function Plugin(path) {
@@ -25,11 +25,11 @@ module.exports = Plugin = (function() {
     if (!fsPlus.isDirectorySync(this.path)) {
       throw new Error("Invalid plugin path: " + this.path);
     }
-    this.manifestPath = this._getAbsoluteFilePath(PACKAGE_JSON);
+    this.manifestPath = this._getAbsoluteFilePath('package.json');
     if (!fs.existsSync(this.manifestPath)) {
       throw new Error("Plugin missing package.json: " + this.path);
     }
-    this.manifest = this._readJSON(PACKAGE_JSON);
+    this.manifest = utils.readJSON(this.manifestPath);
   }
 
   Plugin.prototype.require = function() {
@@ -43,32 +43,6 @@ module.exports = Plugin = (function() {
       result = require(absolutePluginEntryPoint);
     } catch (_error) {
       throw new Error("Error loading plugin: " + this.path);
-    }
-    return result;
-  };
-
-  Plugin.prototype._readFile = function(filePath) {
-    var absoluteFilePath;
-    absoluteFilePath = this._getAbsoluteFilePath(filePath);
-    if (!fs.existsSync(absoluteFilePath)) {
-      throw new Error("File not found: " + absoluteFilePath);
-    }
-    if (!fsPlus.isFileSync(absoluteFilePath)) {
-      throw new Error("Not a file: " + absoluteFilePath);
-    }
-    return fs.readFileSync(absoluteFilePath, {
-      encoding: 'utf8'
-    });
-  };
-
-  Plugin.prototype._readJSON = function(filePath) {
-    var absoluteFilePath, fileContents, result;
-    fileContents = this._readFile(filePath);
-    try {
-      result = JSON.parse(fileContents);
-    } catch (_error) {
-      absoluteFilePath = this._getAbsoluteFilePath(filePath);
-      throw new Error("Invalid JSON file: " + absoluteFilePath);
     }
     return result;
   };
