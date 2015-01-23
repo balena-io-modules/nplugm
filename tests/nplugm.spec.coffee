@@ -10,6 +10,7 @@ fsPlus = require('fs-plus')
 mockFs = require('mock-fs')
 expect = chai.expect
 nplugm = require('../lib/nplugm')
+Plugin = require('../lib/plugin')
 
 describe 'nplugm:', ->
 
@@ -101,50 +102,63 @@ describe 'nplugm:', ->
 			for npmPath in @npmPaths
 				expect(fsPlus.isAbsolute(npmPath)).to.be.true
 
-	describe '#getPluginMeta()', ->
+	describe '#getPluginsByGlob()', ->
 
-		describe 'given an invalid plugin', ->
-
-			beforeEach ->
-				mockFs
-					'/hello/world':
-						'package.json': 'Invalid package.json'
-
-			afterEach ->
-				mockFs.restore()
-
-			it 'should throw an error', ->
-				pluginPath = path.join('/', 'hello', 'world')
-				pluginPathPackageJSON = path.join(pluginPath, 'package.json')
-				expect ->
-					nplugm.getPluginMeta(pluginPath)
-				.to.throw("Invalid JSON file: #{pluginPathPackageJSON}")
-
-		describe 'given a plugin that exists', ->
+		describe 'given all valid plugins', ->
 
 			beforeEach ->
 				mockFs
-					'/hello/world':
-						'package.json': JSON.stringify({ name: 'myPlugin' })
+					'/node_modules':
+						'one':
+							'package.json': JSON.stringify({})
+						'two':
+							'package.json': JSON.stringify({})
+						'three':
+							'package.json': JSON.stringify({})
+
+				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
+				@getPluginsPathsByGlobStub.returns [
+					path.join('/', 'node_modules', 'one')
+					path.join('/', 'node_modules', 'two')
+					path.join('/', 'node_modules', 'three')
+				]
+
+				@plugins = nplugm.getPluginsByGlob('my-plugins-*')
 
 			afterEach ->
 				mockFs.restore()
+				@getPluginsPathsByGlobStub.restore()
 
-			it 'should return the parsed object', ->
-				result = nplugm.getPluginMeta('/hello/world')
-				expect(result).to.deep.equal
-					name: 'myPlugin'
+			it 'should return an array of length 3', ->
+				expect(@plugins).to.have.length(3)
 
-		describe 'given a plugin that does not exist', ->
+			it 'should contain all instances of Plugin', ->
+				for plugin in @plugins
+					expect(plugin).to.be.an.instanceof(Plugin)
+
+		describe 'given one non valid plugin and valid plugins', ->
 
 			beforeEach ->
-				@fsExistsSyncStub = sinon.stub(fs, 'existsSync')
-				@fsExistsSyncStub.returns(false)
+				mockFs
+					'/node_modules':
+						'one':
+							'package.json': JSON.stringify({})
+						'two': {}
+						'three':
+							'package.json': JSON.stringify({})
+
+				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
+				@getPluginsPathsByGlobStub.returns [
+					path.join('/', 'node_modules', 'one')
+					path.join('/', 'node_modules', 'two')
+					path.join('/', 'node_modules', 'three')
+				]
 
 			afterEach ->
-				@fsExistsSyncStub.restore()
+				mockFs.restore()
+				@getPluginsPathsByGlobStub.restore()
 
 			it 'should throw an error', ->
 				expect ->
-					nplugm.getPluginMeta('/hello/world')
-				.to.throw('Plugin does not exist: /hello/world')
+					nplugm.getPluginsByGlob('my-plugins-*')
+				.to.throw(Error)

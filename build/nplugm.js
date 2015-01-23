@@ -39,8 +39,10 @@ exports.getPluginsPathsByGlob = function(nameGlob) {
   return result;
 };
 
-exports.getPluginMeta = function(pluginPath) {
-  var plugin;
-  plugin = new Plugin(pluginPath);
-  return plugin.manifest;
+exports.getPluginsByGlob = function(pluginGlob) {
+  var pluginsPaths;
+  pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob);
+  return _.map(pluginsPaths, function(pluginPath) {
+    return new Plugin(pluginPath);
+  });
 };

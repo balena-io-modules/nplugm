@@ -28,6 +28,7 @@ exports.getPluginsPathsByGlob = (nameGlob) ->
 
 	return result
 
-exports.getPluginMeta = (pluginPath) ->
-	plugin = new Plugin(pluginPath)
-	return plugin.manifest
+exports.getPluginsByGlob = (pluginGlob) ->
+	pluginsPaths = exports.getPluginsPathsByGlob(pluginGlob)
+	return _.map pluginsPaths, (pluginPath) ->
+		return new Plugin(pluginPath)
