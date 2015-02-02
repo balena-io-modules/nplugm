@@ -3,6 +3,7 @@ nplugm
 
 [![npm version](https://badge.fury.io/js/nplugm.svg)](http://badge.fury.io/js/nplugm)
 [![dependencies](https://david-dm.org/resin-io/nplugm.png)](https://david-dm.org/resin-io/nplugm.png)
+[![Build Status](https://travis-ci.org/resin-io/nplugm.svg?branch=master)](https://travis-ci.org/resin-io/nplugm)
 
 NPM based plugin framework for NodeJS, inspired by [Yeoman's](http://yeoman.io/) generators.
 
