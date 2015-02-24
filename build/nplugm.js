@@ -1,69 +1,92 @@
-var Plugin, async, fs, glob, path, yeoman, _;
+var Nplugm, npmCommands, _;
 
-_ = require('lodash');
+_ = require('lodash-contrib');
 
-async = require('async');
+_.str = require('underscore.string');
 
-fs = require('fs');
+npmCommands = require('./npm-commands');
 
-path = require('path');
-
-yeoman = require('yeoman-environment');
-
-glob = require('glob');
-
-Plugin = require('./plugin');
-
-exports.getNpmPaths = function() {
-  return yeoman.createEnv().getNpmPaths();
-};
-
-exports.getPluginsPathsByGlob = function(pluginGlob, callback) {
-  var foundModules, npmPath, npmPaths, result, _i, _len;
-  if (pluginGlob == null) {
-    return callback(new Error('Missing glob'));
-  }
-  if (!_.isString(pluginGlob)) {
-    return callback(new Error('Invalid glob'));
-  }
-  npmPaths = exports.getNpmPaths();
-  result = [];
-  for (_i = 0, _len = npmPaths.length; _i < _len; _i++) {
-    npmPath = npmPaths[_i];
-    foundModules = glob.sync(pluginGlob, {
-      cwd: npmPath
-    });
-    foundModules = _.map(foundModules, function(foundModule) {
-      return path.join(npmPath, foundModule);
-    });
-    result = result.concat(foundModules);
-  }
-  return callback(null, result);
-};
-
-exports.load = function(pluginGlob, pluginCallback, callback) {
-  return async.waterfall([
-    function(callback) {
-      return exports.getPluginsPathsByGlob(pluginGlob, callback);
-    }, function(pluginsPaths, callback) {
-      var error, loadedPlugins, plugin, pluginPath, _i, _len;
-      loadedPlugins = [];
-      for (_i = 0, _len = pluginsPaths.length; _i < _len; _i++) {
-        pluginPath = pluginsPaths[_i];
-        try {
-          plugin = new Plugin(pluginPath);
-          loadedPlugins.push(plugin);
-          if (typeof pluginCallback === "function") {
-            pluginCallback(null, plugin);
-          }
-        } catch (_error) {
-          error = _error;
-          if (typeof pluginCallback === "function") {
-            pluginCallback(error);
-          }
-        }
-      }
-      return callback(null, loadedPlugins);
+module.exports = Nplugm = (function() {
+  function Nplugm(prefix) {
+    this.prefix = prefix;
+    if (this.prefix == null) {
+      throw new Error('Missing prefix argument');
     }
-  ], callback);
-};
+    if (!_.isString(this.prefix)) {
+      throw new Error("Invalid prefix argument: not a string: " + this.prefix);
+    }
+  }
+
+  Nplugm.prototype.list = function(callback) {
+    return npmCommands.list((function(_this) {
+      return function(error, plugins) {
+        var matchPlugins;
+        if (error != null) {
+          return typeof callback === "function" ? callback(error) : void 0;
+        }
+        matchPlugins = _.filter(plugins, function(plugin) {
+          return _.str.startsWith(plugin.name, _this.prefix);
+        });
+        matchPlugins = _.map(matchPlugins, function(plugin) {
+          plugin.name = plugin.name.replace(_this.prefix, '');
+          return plugin;
+        });
+        return typeof callback === "function" ? callback(null, matchPlugins) : void 0;
+      };
+    })(this));
+  };
+
+  Nplugm.prototype.install = function(plugin, callback) {
+    if (plugin == null) {
+      throw new Error('Missing plugin argument');
+    }
+    if (!_.isString(plugin)) {
+      throw new Error("Invalid plugin argument: not a string: " + plugin);
+    }
+    return npmCommands.install(this.prefix + plugin, _.unary(callback));
+  };
+
+  Nplugm.prototype.remove = function(plugin, callback) {
+    if (plugin == null) {
+      throw new Error('Missing plugin argument');
+    }
+    if (!_.isString(plugin)) {
+      throw new Error("Invalid plugin argument: not a string: " + plugin);
+    }
+    return npmCommands.remove(this.prefix + plugin, _.unary(callback));
+  };
+
+  Nplugm.prototype.has = function(plugin, callback) {
+    if (plugin == null) {
+      throw new Error('Missing plugin argument');
+    }
+    if (!_.isString(plugin)) {
+      throw new Error("Invalid plugin argument: not a string: " + plugin);
+    }
+    return this.list(function(error, plugins) {
+      if (error != null) {
+        return typeof callback === "function" ? callback(error) : void 0;
+      }
+      return typeof callback === "function" ? callback(null, _.findWhere(plugins, {
+        name: plugin
+      }) != null) : void 0;
+    });
+  };
+
+  Nplugm.prototype.require = function(plugin) {
+    if (plugin == null) {
+      throw new Error('Missing plugin argument');
+    }
+    if (!_.isString(plugin.name)) {
+      throw new Error("Invalid plugin argument: not a string: " + plugin.name);
+    }
+    try {
+      return require(this.prefix + plugin.name);
+    } catch (_error) {
+      throw new Error("Plugin not found: " + plugin.name);
+    }
+  };
+
+  return Nplugm;
+
+})();
