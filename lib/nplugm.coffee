@@ -1,51 +1,69 @@
-_ = require('lodash')
-async = require('async')
-fs = require('fs')
-path = require('path')
-yeoman = require('yeoman-environment')
-glob = require('glob')
-Plugin = require('./plugin')
+_ = require('lodash-contrib')
+_.str = require('underscore.string')
+npmCommands = require('./npm-commands')
 
-exports.getNpmPaths = ->
-	return yeoman.createEnv().getNpmPaths()
+# TODO: Implement a search function. Maybe use npmKeyword module?
 
-exports.getPluginsPathsByGlob = (pluginGlob, callback) ->
+module.exports = class Nplugm
 
-	if not pluginGlob?
-		return callback(new Error('Missing glob'))
+	constructor: (@prefix) ->
 
-	if not _.isString(pluginGlob)
-		return callback(new Error('Invalid glob'))
+		if not @prefix?
+			throw new Error('Missing prefix argument')
 
-	npmPaths = exports.getNpmPaths()
-	result = []
+		if not _.isString(@prefix)
+			throw new Error("Invalid prefix argument: not a string: #{@prefix}")
 
-	for npmPath in npmPaths
-		foundModules = glob.sync(pluginGlob, cwd: npmPath)
-		foundModules = _.map foundModules, (foundModule) ->
-			return path.join(npmPath, foundModule)
+	list: (callback) ->
+		npmCommands.list (error, plugins) =>
+			return callback?(error) if error?
 
-		result = result.concat(foundModules)
+			matchPlugins = _.filter plugins, (plugin) =>
+				return _.str.startsWith(plugin, @prefix)
 
-	return callback(null, result)
+			return callback?(null, matchPlugins)
 
-exports.load = (pluginGlob, pluginCallback, callback) ->
-	async.waterfall([
+	install: (plugin, callback) ->
 
-		(callback) ->
-			exports.getPluginsPathsByGlob(pluginGlob, callback)
+		if not plugin?
+			throw new Error('Missing plugin argument')
 
-		(pluginsPaths, callback) ->
-			loadedPlugins = []
+		if not _.isString(plugin)
+			throw new Error("Invalid plugin argument: not a string: #{plugin}")
 
-			for pluginPath in pluginsPaths
-				try
-					plugin = new Plugin(pluginPath)
-					loadedPlugins.push(plugin)
-					pluginCallback?(null, plugin)
-				catch error
-					pluginCallback?(error)
+		return npmCommands.install(@prefix + plugin, _.unary(callback))
 
-			return callback(null, loadedPlugins)
+	remove: (plugin, callback) ->
 
-	], callback)
+		if not plugin?
+			throw new Error('Missing plugin argument')
+
+		if not _.isString(plugin)
+			throw new Error("Invalid plugin argument: not a string: #{plugin}")
+
+		return npmCommands.remove(@prefix + plugin, _.unary(callback))
+
+	has: (plugin, callback) ->
+
+		if not plugin?
+			throw new Error('Missing plugin argument')
+
+		if not _.isString(plugin)
+			throw new Error("Invalid plugin argument: not a string: #{plugin}")
+
+		@list (error, plugins) =>
+			return callback?(error) if error?
+			return callback?(null, _.contains(plugins, @prefix + plugin))
+
+	require: (plugin) ->
+
+		if not plugin?
+			throw new Error('Missing plugin argument')
+
+		if not _.isString(plugin)
+			throw new Error("Invalid plugin argument: not a string: #{plugin}")
+
+		try
+			return require(@prefix + plugin)
+		catch
+			throw new Error("Plugin not found: #{plugin}")

@@ -1,202 +1,256 @@
-os = require('os')
-_ = require('lodash')
-path = require('path')
+_ = require('lodash-contrib')
 sinon = require('sinon')
 chai = require('chai')
 chai.use(require('sinon-chai'))
-glob = require('glob')
-fs = require('fs')
-fsPlus = require('fs-plus')
-mockFs = require('mock-fs')
 expect = chai.expect
-nplugm = require('../lib/nplugm')
-Plugin = require('../lib/plugin')
+Nplugm = require('../lib/nplugm')
+npmCommands = require('../lib/npm-commands')
 
-describe 'nplugm:', ->
+describe 'Nplugm:', ->
 
-	describe '#getPluginsPathsByGlob()', ->
+	describe '#constructor()', ->
 
-		describe 'given no glob', ->
+		it 'should throw an error if no prefix', ->
+			expect ->
+				new Nplugm()
+			.to.throw('Missing prefix argument')
 
-			it 'should throw an error', (done) ->
-				nplugm.getPluginsPathsByGlob null, (error, plugins) ->
-					expect(error).to.be.an.instanceof(Error)
-					expect(error.message).to.equal('Missing glob')
-					expect(plugins).to.not.exist
-					done()
+		it 'should throw an error if prefix is not a string', ->
+			expect ->
+				new Nplugm(123)
+			.to.throw('Invalid prefix argument: not a string: 123')
 
-		describe 'given an invalid glob', ->
+		it 'should make the prefix accesible from the instance', ->
+			nplugm = new Nplugm('foobar-')
+			expect(nplugm.prefix).to.equal('foobar-')
 
-			it 'should throw an error', (done) ->
-				nplugm.getPluginsPathsByGlob [ 'glob' ], (error, plugins) ->
-					expect(error).to.be.an.instanceof(Error)
-					expect(error.message).to.equal('Invalid glob')
-					expect(plugins).to.not.exist
-					done()
+	describe '#list()', ->
 
-		describe 'given a glob that does not matches anything', ->
+		describe 'given an error', ->
 
 			beforeEach ->
-				@globSyncStub = sinon.stub(glob, 'sync')
-				@globSyncStub.returns []
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsListStub = sinon.stub(npmCommands, 'list')
+				@npmCommandsListStub.yields(new Error('List Error'))
 
 			afterEach ->
-				@globSyncStub.restore()
+				@npmCommandsListStub.restore()
+
+			it 'should propagate the error', (done) ->
+				@nplugm.list (error, plugins) ->
+					expect(error).to.be.an.instanceof(Error)
+					expect(error.message).to.equal('List Error')
+					expect(plugins).to.not.exist
+					done()
+
+			it 'should not throw if no callback', ->
+				expect =>
+					@nplugm.list()
+				.to.not.throw(Error)
+
+		describe 'given a list of plugins', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsListStub = sinon.stub(npmCommands, 'list')
+				@npmCommandsListStub.yields null, [
+					'foobar-foo'
+					'hello-world'
+					'foobarqux'
+					'foobar-bar'
+				]
+
+			afterEach ->
+				@npmCommandsListStub.restore()
+
+			it 'should filter by the prefix', (done) ->
+				@nplugm.list (error, plugins) ->
+					expect(error).to.not.exist
+					expect(plugins).to.deep.equal [
+						'foobar-foo'
+						'foobar-bar'
+					]
+					done()
+
+			it 'should not throw if no callback', ->
+				expect =>
+					@nplugm.list()
+				.to.not.throw(Error)
+
+		describe 'given no installed plugins', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsListStub = sinon.stub(npmCommands, 'list')
+				@npmCommandsListStub.yields null, []
+
+			afterEach ->
+				@npmCommandsListStub.restore()
 
 			it 'should return an empty array', (done) ->
-				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
+				@nplugm.list (error, plugins) ->
 					expect(error).to.not.exist
 					expect(plugins).to.deep.equal([])
 					done()
 
-		describe 'given a glob that matches packages', ->
+			it 'should not throw if no callback', ->
+				expect =>
+					@nplugm.list()
+				.to.not.throw(Error)
+
+	describe '#install()', ->
+
+		it 'should throw if no plugin', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.install(null, _.noop)
+			.to.throw('Missing plugin argument')
+
+		it 'should throw if plugin is not a string', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.install(123, _.noop)
+			.to.throw('Invalid plugin argument: not a string: 123')
+
+		describe 'given a valid plugin name', ->
 
 			beforeEach ->
-				@getNpmPathsStub = sinon.stub(nplugm, 'getNpmPaths')
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsInstallStub = sinon.stub(npmCommands, 'install')
 
-				if os.platform() is 'win32'
-					@getNpmPathsStub.returns([ 'C:\\node_modules' ])
-				else
-					@getNpmPathsStub.returns([ '/usr/lib/node_modules' ])
+			afterEach ->
+				@npmCommandsInstallStub.restore()
 
-				@globSyncStub = sinon.stub(glob, 'sync')
-				@globSyncStub.returns [
-					'one'
-					'two'
-					'three'
+			it 'should preppend the prefix', ->
+				@nplugm.install('hello', _.noop)
+				expect(@npmCommandsInstallStub).to.have.been.calledOnce
+				expect(@npmCommandsInstallStub).to.have.been.calledWith('foobar-hello')
+
+			it 'should not throw if no callback', ->
+				expect =>
+					@nplugm.install('hello')
+				.to.not.throw(Error)
+
+	describe '#remove()', ->
+
+		it 'should throw if no plugin', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.remove(null, _.noop)
+			.to.throw('Missing plugin argument')
+
+		it 'should throw if plugin is not a string', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.remove(123, _.noop)
+			.to.throw('Invalid plugin argument: not a string: 123')
+
+		describe 'given a valid plugin name', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsRemoveStub = sinon.stub(npmCommands, 'remove')
+
+			afterEach ->
+				@npmCommandsRemoveStub.restore()
+
+			it 'should preppend the prefix', ->
+				@nplugm.remove('hello', _.noop)
+				expect(@npmCommandsRemoveStub).to.have.been.calledOnce
+				expect(@npmCommandsRemoveStub).to.have.been.calledWith('foobar-hello')
+
+			it 'should not throw if no callback', ->
+				expect =>
+					@nplugm.remove('hello')
+				.to.not.throw(Error)
+
+	describe '#has()', ->
+
+		it 'should throw if no plugin', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.has(null, _.noop)
+			.to.throw('Missing plugin argument')
+
+		it 'should throw if plugin is not a string', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.has(123, _.noop)
+			.to.throw('Invalid plugin argument: not a string: 123')
+
+		describe 'given an error', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsListStub = sinon.stub(npmCommands, 'list')
+				@npmCommandsListStub.yields(new Error('List Error'))
+
+			afterEach ->
+				@npmCommandsListStub.restore()
+
+			it 'should propagate the error', (done) ->
+				@nplugm.has 'hello', (error, plugins) ->
+					expect(error).to.be.an.instanceof(Error)
+					expect(error.message).to.equal('List Error')
+					expect(plugins).to.not.exist
+					done()
+
+			it 'should not throw if no callback', ->
+				expect =>
+					@nplugm.has('hello')
+				.to.not.throw(Error)
+
+		describe 'given a list of plugins', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@npmCommandsListStub = sinon.stub(npmCommands, 'list')
+				@npmCommandsListStub.yields null, [
+					'foobar-foo'
+					'hello-world'
+					'foobarqux'
+					'foobar-bar'
 				]
 
 			afterEach ->
-				@getNpmPathsStub.restore()
-				@globSyncStub.restore()
+				@npmCommandsListStub.restore()
 
-			it 'should return an array', (done) ->
-				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
-					expect(error).to.not.exist
-					expect(plugins).to.be.an.instanceof(Array)
-					done()
+			describe 'given it has the plugin', ->
 
-			it 'should have the proper length', (done) ->
-				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
-					expect(error).to.not.exist
-					expect(plugins).to.have.length(3)
-					done()
+				it 'should return true', (done) ->
+					@nplugm.has 'foo', (error, hasPlugin) ->
+						expect(error).to.not.exist
+						expect(hasPlugin).to.be.true
+						done()
 
-			it 'should contain absolute paths', (done) ->
-				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
-					expect(error).to.not.exist
-					for pluginPath in plugins
-						expect(fsPlus.isAbsolute(pluginPath)).to.be.true
-					done()
+				it 'should not throw if no callback', ->
+					expect =>
+						@nplugm.has('foo')
+					.to.not.throw(Error)
 
-			it 'should return the appropriate paths', (done) ->
-				nplugm.getPluginsPathsByGlob 'myGlob*', (error, plugins) ->
-					expect(error).to.not.exist
+			describe 'given it does not have the plugin', ->
 
-					if os.platform() is 'win32'
-						expect(plugins[0]).to.equal('C:\\node_modules\\one')
-						expect(plugins[1]).to.equal('C:\\node_modules\\two')
-						expect(plugins[2]).to.equal('C:\\node_modules\\three')
-					else
-						expect(plugins[0]).to.equal('/usr/lib/node_modules/one')
-						expect(plugins[1]).to.equal('/usr/lib/node_modules/two')
-						expect(plugins[2]).to.equal('/usr/lib/node_modules/three')
+				it 'should return false', (done) ->
+					@nplugm.has 'baz', (error, hasPlugin) ->
+						expect(error).to.not.exist
+						expect(hasPlugin).to.be.false
+						done()
 
-					done()
+				it 'should not throw if no callback', ->
+					expect =>
+						@nplugm.has('baz')
+					.to.not.throw(Error)
 
-	describe '#getNpmPaths()', ->
+	describe '#require()', ->
 
-		beforeEach ->
-			@npmPaths = nplugm.getNpmPaths()
+		it 'should throw if no plugin', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.require(null)
+			.to.throw('Missing plugin argument')
 
-		it 'should return an array', ->
-			expect(@npmPaths).to.be.an.instanceof(Array)
-
-		it 'should return at least one path', ->
-			expect(@npmPaths.length > 1).to.be.true
-
-		it 'should contain absolute paths', ->
-			for npmPath in @npmPaths
-				expect(fsPlus.isAbsolute(npmPath)).to.be.true
-
-	describe '#load()', ->
-
-		describe 'given all valid plugins', ->
-
-			beforeEach ->
-				mockFs
-					'/node_modules':
-						'one':
-							'package.json': JSON.stringify({})
-						'two':
-							'package.json': JSON.stringify({})
-
-				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
-				@getPluginsPathsByGlobStub.yields null, [
-					path.join('/', 'node_modules', 'one')
-					path.join('/', 'node_modules', 'two')
-				]
-
-			afterEach ->
-				mockFs.restore()
-				@getPluginsPathsByGlobStub.restore()
-
-			it 'should load all the plugins', (done) ->
-				spy = sinon.spy()
-
-				nplugm.load 'my-plugin-*', spy, (error) ->
-					expect(error).to.not.exist
-					expect(spy).to.have.callCount(2)
-					done()
-
-			it 'should call the plugin callback with error and plugin args', (done) ->
-				pluginCallbackSpy = sinon.spy (error, plugin) ->
-					expect(error).to.not.exist
-					expect(plugin).to.be.an.instanceof(Plugin)
-
-				nplugm.load 'my-plugin-*', pluginCallbackSpy, (error) ->
-					expect(error).to.not.exist
-					done()
-
-			it 'should provide a loadedPlugins array to the callback', (done) ->
-				nplugm.load 'my-plugin-*', null, (error, loadedPlugins) ->
-					expect(error).to.not.exist
-					expect(loadedPlugins).to.have.length(2)
-
-					for loadedPlugin in loadedPlugins
-						expect(loadedPlugin).to.be.an.instanceof(Plugin)
-
-					done()
-
-		describe 'given one non valid plugin and one valid plugin', ->
-
-			beforeEach ->
-				mockFs
-					'/node_modules':
-						'one':
-							'package.json': JSON.stringify({})
-						'two': {}
-
-				@getPluginsPathsByGlobStub = sinon.stub(nplugm, 'getPluginsPathsByGlob')
-				@getPluginsPathsByGlobStub.yields null, [
-					path.join('/', 'node_modules', 'one')
-					path.join('/', 'node_modules', 'two')
-				]
-
-			afterEach ->
-				mockFs.restore()
-				@getPluginsPathsByGlobStub.restore()
-
-			it 'should call plugin callback twice', (done) ->
-				spy = sinon.spy()
-
-				nplugm.load 'my-plugin-*', spy, (error) ->
-					expect(error).to.not.exist
-					expect(spy).to.have.callCount(2)
-					done()
-
-			it 'should only load one plugin', (done) ->
-				nplugm.load 'my-plugin-*', null, (error, loadedPlugins) ->
-					expect(error).to.not.exist
-					expect(loadedPlugins).to.have.length(1)
-					done()
+		it 'should throw if plugin is not a string', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.require(123)
+			.to.throw('Invalid plugin argument: not a string: 123')

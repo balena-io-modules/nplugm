@@ -5,20 +5,20 @@ nplugm
 [![dependencies](https://david-dm.org/resin-io/nplugm.png)](https://david-dm.org/resin-io/nplugm.png)
 [![Build Status](https://travis-ci.org/resin-io/nplugm.svg?branch=master)](https://travis-ci.org/resin-io/nplugm)
 
-NPM based plugin framework for NodeJS, inspired by [Yeoman's](http://yeoman.io/) generators.
+NPM based plugin framework for NodeJS.
 
-[Yeoman](http://yeoman.io/) provides an extremely easy way to install third party generators by relying on NPM. The main concept, is that if you globally install any module that starts with `generator-`, it will be loaded by their command line tool automatically.
+**Nplugm went trough a major redesign to improve the reliability of the framework.**
 
-With `nplugm`, you can integrate the same functionality to any NodeJS application, easily.
+[Checkout v1.0's README if you're still using that version.](https://github.com/resin-io/nplugm/blob/v1.0.1/README.md)
 
-```coffee
-nplugm.load 'generator-*', (error, plugin) ->
-	return console.error(error.message) if error?
-	registerPlugin(plugin.require())
-, (error, loadedPlugins) ->
-	errors.handle(error) if error?
-	console.log("Loaded #{loadedPlugins.length} plugins")
-```
+How it works
+------------
+
+Nplugm provides a framework to manage application plugins that consist of separate npm packages, installed locally in the parent application's `node_modules/` directory.
+
+Nplugm provides CRUD operations to easily allow the application to install, remove, list, etc plugins.
+
+Nplugm detects plugins my prefixing them with a specific string, usually the application's name.
 
 Installation
 ------------
@@ -32,114 +32,41 @@ $ npm install --save nplugm
 Documentation
 -------------
 
-### nplugm.load(glob, pluginCallback, callback)
+The module exports a class, called `Nplugm`, that you instantiate based on a prefix.
 
-Search the system for plugins that match `glob`, and attempt to load each of them. This is probably the only `nplugm` function that you'll use most of the time.
+#### Nplugm#constructor(String prefix)
 
-#### glob
+The constructor requires a string prefix, usually in the form of `myapp-`.
 
-A [glob pattern](https://www.npmjs.com/package/glob) used to search for plugins in the system.
+In this case, plugins will be of the form `myapp-foo`, `myapp-bar` and so on.
 
-#### pluginCallback(error, plugin)
+#### Nplugm#list(Function callback)
 
-A function that gets called **for every plugin** that the framework attempts to load. It gets called with the following arguments:
+Lists the currently installed applications.
 
-- `error` a possible error when loading the plugin.
-- `plugin` an instance of the `Plugin` class.
+The callback gets passed two arguments: `(error, plugins)`.
 
-#### callback(error, loadedPlugins)
+#### Nplugm#install(String plugin, Function callback)
 
-A function that gets called after all plugins were processed. It contains a possible error and the array of `Plugin` objects that got loaded successfully.
+Installs a plugin.
 
-If no plugins were loaded, `loadedPlugins` will be an empty array.
+Notice that the string argument consists of the plugin name without the prefix. So as the above example, passing `foo` will actually install `myapp-foo`.
 
-Examples:
+The callback gets passed one argument: `(error)`.
 
-```coffee
-nplugm.load 'x-plugin-*', (error, plugin) ->
-	
-	# Notice you can decide whether a plugin loading error
-	# can crash or not your main application.
-	if error?
-		return console.error(error)
-		
-	# The way that the actual loaded plugin is used
-	# is specific to your application.
-	myApplicationPlugins.push(plugin.require())
-	
-, (error, loadedPlugins) ->
-	throw error if error?
-	
-	console.log("The application loaded #{loadedPlugins.length} plugins")
-```
+#### Nplugm#remove(String plugin, Function callback)
 
-### nplugm.getPluginsPathsByGlob(glob, callback)
+Removes a plugin.
 
-It searches the system for plugins that match `glob`, and return an array of absolute paths to the search results.
+Notice that the string argument consists of the plugin name without the prefix. So as the above example, passing `foo` will actually uninstall `myapp-foo`.
 
-If no plugin was found, an empty array is returned.
+The callback gets passed one argument: `(error)`.
 
-#### glob
+#### Nplugm#has(String plugin, Function callback)
 
-A [glob pattern](https://www.npmjs.com/package/glob) used to search for plugins in the system.
+Check that a plugin is installed.
 
-#### callback(error, pluginPaths)
-
-A function containing a possible error, and the array of paths.
-
-Examples:
-
-```coffee
-nplugm.getPluginsPathsByGlob 'x-plugin-*', (error, pluginPaths) ->
-	throw error if error?
-	
-	console.log('nplugm found the following plugins that match your criteria:')
-
-	for pluginPath in pluginPaths
-		console.log(pluginPath)
-```
-
-### nplugm.getNpmPaths()
-
-Returns an array of strings containing all `node_modules/` locations that are searched by the framework.
-
-It reuses [Yeoman's internal getNpmPaths() function](https://github.com/yeoman/environment/blob/master/lib/resolver.js#L109) to provide good cross operating system support.
-
-Examples:
-
-```coffee
-console.log('nplugm searches for plugins in the following directories:')
-
-for npmPath in nplugm.getNpmPaths()
-	console.log(npmPath)
-```
-
-***
-
-As mentioned before, `nplugm` returns instances of a `Plugin` class, which is a *private* class used by `nplugm` to abstract the concept of a plugin. 
-
-You can't instantiate a `Plugin` class directly, but you can use the simple yet handy interface it expose to integrate the plugins to your application.
-
-### Plugin#require()
-
-A function that requires the entry point of the module (defined by `package.json` as the `main` property) and return it.
-
-Notice this function may throw an error, that you can catch by using a `try/catch` construct.
-
-Examples:
-
-```coffee
-myPlugin = plugin.require()
-```
-
-### Plugin#manifest
-
-An object property that has the values from the plugin's `package.json`.
-
-Examples:
-
-	plugin.manifest.name
-	plugin.manifest.dependencies[0]
+The callback gets passed two arguments: `(error, hasPlugin)`.
 
 Tests
 -----
@@ -169,6 +96,10 @@ If you're having any problem, please [raise an issue](https://github.com/resin-i
 
 ChangeLog
 ---------
+
+### v2.0.0
+
+Major redesign. Delegate most logic to npm module and work with locally scoped plugins.
 
 ### v1.0.1
 
