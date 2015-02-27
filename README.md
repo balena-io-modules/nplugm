@@ -97,6 +97,10 @@ If you're having any problem, please [raise an issue](https://github.com/resin-i
 ChangeLog
 ---------
 
+### v2.0.1
+
+Silence npm list command to avoid annoying npm warnings in some cases.
+
 ### v2.0.0
 
 Major redesign. Delegate most logic to npm module and work with locally scoped plugins.
