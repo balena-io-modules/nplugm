@@ -9,6 +9,7 @@ exports.list = (callback) ->
 			options =
 				depth: 0
 				parseable: true
+				loglevel: 'silent'
 
 			npm.load(options, _.unary(callback))
 
