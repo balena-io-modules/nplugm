@@ -131,6 +131,73 @@ describe 'Nplugm:', ->
 					@nplugm.install('hello')
 				.to.not.throw(Error)
 
+	describe '#update()', ->
+
+		it 'should throw if no plugin', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.update(null, _.noop)
+			.to.throw('Missing plugin argument')
+
+		it 'should throw if plugin is not a string', ->
+			nplugm = new Nplugm('foobar-')
+			expect ->
+				nplugm.update(123, _.noop)
+			.to.throw('Invalid plugin argument: not a string: 123')
+
+		describe 'given a plugin that is not installed', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@nplugmHasStub = sinon.stub(@nplugm, 'has')
+				@nplugmHasStub.yields(null, false)
+
+			afterEach ->
+				@nplugmHasStub.restore()
+
+			it 'should return an error', (done) ->
+				@nplugm.update 'hello', (error) ->
+					expect(error).to.be.an.instanceof(Error)
+					expect(error.message).to.equal('Plugin not found: hello')
+					done()
+
+		describe 'given a plugin that is installed', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@nplugmHasStub = sinon.stub(@nplugm, 'has')
+				@nplugmHasStub.yields(null, true)
+				@npmCommandsUpdateStub = sinon.stub(npmCommands, 'update')
+				@npmCommandsUpdateStub.yields(null, '1.0.1')
+
+			afterEach ->
+				@nplugmHasStub.restore()
+				@npmCommandsUpdateStub.restore()
+
+			it 'should prepend the prefix', ->
+				@nplugm.update('hello', _.noop)
+				expect(@npmCommandsUpdateStub).to.have.been.calledOnce
+				expect(@npmCommandsUpdateStub).to.have.been.calledWith('foobar-hello')
+
+		describe 'given a plugin that is at the latest version', ->
+
+			beforeEach ->
+				@nplugm = new Nplugm('foobar-')
+				@nplugmHasStub = sinon.stub(@nplugm, 'has')
+				@nplugmHasStub.yields(null, true)
+				@npmCommandsUpdateStub = sinon.stub(npmCommands, 'update')
+				@npmCommandsUpdateStub.yields(null, null)
+
+			afterEach ->
+				@nplugmHasStub.restore()
+				@npmCommandsUpdateStub.restore()
+
+			it 'should return an error', (done) ->
+				@nplugm.update 'hello', (error) ->
+					expect(error).to.be.an.instanceof(Error)
+					expect(error.message).to.equal('Plugin is already at latest version: hello')
+					done()
+
 	describe '#remove()', ->
 
 		it 'should throw if no plugin', ->

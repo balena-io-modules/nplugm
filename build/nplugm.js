@@ -46,6 +46,29 @@ module.exports = Nplugm = (function() {
     return npmCommands.install(this.prefix + plugin, _.unary(callback));
   };
 
+  Nplugm.prototype.update = function(plugin, callback) {
+    return this.has(plugin, (function(_this) {
+      return function(error, hasPlugin) {
+        if (error != null) {
+          return callback(error);
+        }
+        if (!hasPlugin) {
+          return callback(new Error("Plugin not found: " + plugin));
+        }
+        return npmCommands.update(_this.prefix + plugin, function(error, version) {
+          if (error != null) {
+            return callback(error);
+          }
+          if (version == null) {
+            error = new Error("Plugin is already at latest version: " + plugin);
+            return callback(error);
+          }
+          return callback(null, version);
+        });
+      };
+    })(this));
+  };
+
   Nplugm.prototype.remove = function(plugin, callback) {
     if (plugin == null) {
       throw new Error('Missing plugin argument');

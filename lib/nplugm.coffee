@@ -37,6 +37,23 @@ module.exports = class Nplugm
 
 		return npmCommands.install(@prefix + plugin, _.unary(callback))
 
+	update: (plugin, callback) ->
+
+		@has plugin, (error, hasPlugin) =>
+			return callback(error) if error?
+
+			if not hasPlugin
+				return callback(new Error("Plugin not found: #{plugin}"))
+
+			npmCommands.update @prefix + plugin, (error, version) ->
+				return callback(error) if error?
+
+				if not version?
+					error = new Error("Plugin is already at latest version: #{plugin}")
+					return callback(error)
+
+				return callback(null, version)
+
 	remove: (plugin, callback) ->
 
 		if not plugin?

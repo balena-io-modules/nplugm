@@ -46,6 +46,29 @@ exports.install = (name, callback) ->
 
 		return callback(error) if error?
 
+exports.update = (name, callback) ->
+	async.waterfall [
+
+		(callback) ->
+			npm.load(loglevel: 'silent', _.unary(callback))
+
+		(callback) ->
+			npm.commands.update([ name ], callback)
+
+		(installedModules, callback) ->
+			installedModules = _.map(installedModules, _.first)
+			installedModule = _.first(installedModules)
+			installedModuleVersion = _.last(installedModule.split('@'))
+			return callback(null, installedModuleVersion)
+
+	], (error, version) ->
+		return callback(null, version) if not error?
+
+		if error.code is 'E404'
+			error.message = "Plugin not found: #{name}"
+
+		return callback(error) if error?
+
 exports.remove = (name, callback) ->
 	async.waterfall([
 

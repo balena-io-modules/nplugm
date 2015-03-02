@@ -49,6 +49,34 @@ exports.install = function(name, callback) {
   });
 };
 
+exports.update = function(name, callback) {
+  return async.waterfall([
+    function(callback) {
+      return npm.load({
+        loglevel: 'silent'
+      }, _.unary(callback));
+    }, function(callback) {
+      return npm.commands.update([name], callback);
+    }, function(installedModules, callback) {
+      var installedModule, installedModuleVersion;
+      installedModules = _.map(installedModules, _.first);
+      installedModule = _.first(installedModules);
+      installedModuleVersion = _.last(installedModule.split('@'));
+      return callback(null, installedModuleVersion);
+    }
+  ], function(error, version) {
+    if (error == null) {
+      return callback(null, version);
+    }
+    if (error.code === 'E404') {
+      error.message = "Plugin not found: " + name;
+    }
+    if (error != null) {
+      return callback(error);
+    }
+  });
+};
+
 exports.remove = function(name, callback) {
   return async.waterfall([
     function(callback) {
