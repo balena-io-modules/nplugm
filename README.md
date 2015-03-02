@@ -54,6 +54,14 @@ Notice that the string argument consists of the plugin name without the prefix. 
 
 The callback gets passed one argument: `(error)`.
 
+#### Nplugm#update(String plugin, Function callback)
+
+Updates a plugin.
+
+Notice that the string argument consists of the plugin name without the prefix. So as the above example, passing `foo` will actually install `myapp-foo`.
+
+The callback gets passed two arguments: `(error, version)`, where version is the version to which the plugin was updated.
+
 #### Nplugm#remove(String plugin, Function callback)
 
 Removes a plugin.
@@ -96,6 +104,10 @@ If you're having any problem, please [raise an issue](https://github.com/resin-i
 
 ChangeLog
 ---------
+
+### v2.1.0
+
+Implement plugin update functionality.
 
 ### v2.0.1
 
