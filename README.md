@@ -105,6 +105,10 @@ If you're having any problem, please [raise an issue](https://github.com/resin-i
 ChangeLog
 ---------
 
+### v2.2.0
+
+List globally installed plugins.
+
 ### v2.1.0
 
 Implement plugin update functionality.
