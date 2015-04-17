@@ -13,7 +13,8 @@ exports.list = function(callback) {
       options = {
         depth: 0,
         parseable: true,
-        loglevel: 'silent'
+        loglevel: 'silent',
+        global: true
       };
       return npm.load(options, _.unary(callback));
     }, function(callback) {
