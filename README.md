@@ -4,6 +4,7 @@ nplugm
 [![npm version](https://badge.fury.io/js/nplugm.svg)](http://badge.fury.io/js/nplugm)
 [![dependencies](https://david-dm.org/resin-io/nplugm.png)](https://david-dm.org/resin-io/nplugm.png)
 [![Build Status](https://travis-ci.org/resin-io/nplugm.svg?branch=master)](https://travis-ci.org/resin-io/nplugm)
+[![Build status](https://ci.appveyor.com/api/projects/status/1wck263ph9j4rq4v?svg=true)](https://ci.appveyor.com/project/jviotti/nplugm)
 
 NPM based plugin framework for NodeJS.
 
