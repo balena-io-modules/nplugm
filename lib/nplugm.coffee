@@ -1,90 +1,56 @@
-_ = require('lodash-contrib')
-_.str = require('underscore.string')
-npmCommands = require('./npm-commands')
+###
+The MIT License
 
-# TODO: Implement a search function. Maybe use npmKeyword module?
+Copyright (c) 2015 Resin.io, Inc. https://resin.io
 
-module.exports = class Nplugm
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-	constructor: (@prefix) ->
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-		if not @prefix?
-			throw new Error('Missing prefix argument')
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+###
 
-		if not _.isString(@prefix)
-			throw new Error("Invalid prefix argument: not a string: #{@prefix}")
+###*
+# @module nplugm
+###
 
-	list: (callback) ->
-		npmCommands.list (error, plugins) =>
-			return callback?(error) if error?
+_ = require('lodash')
+resolver = require('./resolver')
 
-			matchPlugins = _.filter plugins, (plugin) =>
-				return _.str.startsWith(plugin.name, @prefix)
+###*
+# @summary List matching installed plugins
+# @function
+# @public
+#
+# @description
+# If `regex` is a `String`, it will match all the plugins that start with it.
+#
+# @param {(RegExp|String)} [regex=\/.*\/] - plugin matcher
+# @returns {Promise<String[]>} plugins
+#
+# @example
+# nplugm.list(/^my-plugin-(\w+)$/).map (plugin) ->
+# 	import = require(plugin)
+# 	console.log("Registering: #{plugin}")
+###
+exports.list = (regex = /.*/) ->
 
-			matchPlugins = _.map matchPlugins, (plugin) =>
-				plugin.name = plugin.name.replace(@prefix, '')
-				return plugin
+	# If `regex` is a string, match the
+	# plugins that start with `regex`.
+	if _.isString(regex)
+		regex = new RegExp("^#{regex}(.*)$")
 
-			return callback?(null, matchPlugins)
-
-	install: (plugin, callback) ->
-
-		if not plugin?
-			throw new Error('Missing plugin argument')
-
-		if not _.isString(plugin)
-			throw new Error("Invalid plugin argument: not a string: #{plugin}")
-
-		return npmCommands.install(@prefix + plugin, _.unary(callback))
-
-	update: (plugin, callback) ->
-
-		@has plugin, (error, hasPlugin) =>
-			return callback(error) if error?
-
-			if not hasPlugin
-				return callback(new Error("Plugin not found: #{plugin}"))
-
-			npmCommands.update @prefix + plugin, (error, version) ->
-				return callback(error) if error?
-
-				if not version?
-					error = new Error("Plugin is already at latest version: #{plugin}")
-					return callback(error)
-
-				return callback(null, version)
-
-	remove: (plugin, callback) ->
-
-		if not plugin?
-			throw new Error('Missing plugin argument')
-
-		if not _.isString(plugin)
-			throw new Error("Invalid plugin argument: not a string: #{plugin}")
-
-		return npmCommands.remove(@prefix + plugin, _.unary(callback))
-
-	has: (plugin, callback) ->
-
-		if not plugin?
-			throw new Error('Missing plugin argument')
-
-		if not _.isString(plugin)
-			throw new Error("Invalid plugin argument: not a string: #{plugin}")
-
-		@list (error, plugins) ->
-			return callback?(error) if error?
-			return callback?(null, _.findWhere(plugins, name: plugin)?)
-
-	require: (plugin) ->
-
-		if not plugin?
-			throw new Error('Missing plugin argument')
-
-		if not _.isString(plugin.name)
-			throw new Error("Invalid plugin argument: not a string: #{plugin.name}")
-
-		try
-			return require(@prefix + plugin.name)
-		catch
-			throw new Error("Plugin not found: #{plugin.name}")
+	return resolver.lookup().filter (plugin) ->
+		return regex.test(plugin)

@@ -25,25 +25,12 @@ $ npm install --save nplugm
 Documentation
 -------------
 
-<a name="module_nplugm.list"></a>
-### nplugm.list([regex]) ⇒ <code>Promise.&lt;Array.&lt;String&gt;&gt;</code>
-If `regex` is a `String`, it will match all the plugins that start with it.
-
-**Kind**: static method of <code>[nplugm](#module_nplugm)</code>  
-**Summary**: List matching installed plugins  
-**Returns**: <code>Promise.&lt;Array.&lt;String&gt;&gt;</code> - plugins  
-**Access:** public  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| [regex] | <code>RegExp</code> &#124; <code>String</code> | <code>\/.*\/</code> | plugin matcher |
-
-**Example**  
-```js
-nplugm.list(/^my-plugin-(\w+)$/).map (plugin) ->
-	import = require(plugin)
-	console.log("Registering: #{plugin}")
-```
+{{#module name="nplugm"}}
+{{>body~}}
+{{>member-index~}}
+{{>separator~}}
+{{>members~}}
+{{/module}}
 
 Support
 -------
