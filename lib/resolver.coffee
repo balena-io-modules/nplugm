@@ -1,3 +1,4 @@
+###
 The MIT License
 
 Copyright (c) 2015 Resin.io, Inc. https://resin.io
@@ -19,3 +20,32 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+###
+
+Promise = require('bluebird')
+npm = Promise.promisifyAll(require('npm'))
+_ = require('lodash')
+
+###*
+# @summary Lookup globally installed npm modules
+# @function
+# @protected
+#
+# @returns {Promise<String[]>} installed plugins
+#
+# @example
+# resolver.lookup().then (plugins) ->
+# 	for plugin in plugins
+# 		console.log(plugin)
+###
+exports.lookup = ->
+	npm.loadAsync
+		depth: 0
+		parseable: true
+		loglevel: 'silent'
+		global: true
+	.then (instance) ->
+		Promise.fromNode (callback) ->
+			instance.commands.list([], true, callback)
+	.spread (data) ->
+		return _.compact(_.pluck(_.values(data.dependencies), 'name'))

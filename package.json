@@ -1,6 +1,6 @@
 {
   "name": "nplugm",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "NPM based plugin framework for NodeJS",
   "main": "build/nplugm.js",
   "homepage": "https://github.com/resin-io/nplugm",
@@ -18,28 +18,27 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "gulp test",
-    "prepublish": "gulp build"
+    "test": "gulp test && coffee tests/e2e.coffee",
+    "prepublish": "gulp build",
+    "readme": "jsdoc2md --template doc/README.hbs build/nplugm.js > README.md"
   },
   "author": "Juan Cruz Viotti <juanchiviotti@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "chai": "~1.10.0",
     "coffee-script": "~1.8.0",
     "gulp": "~3.8.10",
     "gulp-coffee": "~2.2.0",
     "gulp-coffeelint": "~0.4.0",
     "gulp-mocha": "~2.0.0",
     "gulp-util": "~3.0.1",
+    "jsdoc-to-markdown": "^1.1.1",
     "mocha": "~2.0.1",
-    "mock-fs": "^2.3.2",
-    "sinon": "~1.12.2",
-    "sinon-chai": "~2.6.0"
+    "mochainon": "^1.0.0",
+    "shelljs": "^0.5.3"
   },
   "dependencies": {
-    "async": "^0.9.0",
-    "lodash-contrib": "^241.4.14",
-    "npm": "^2.6.0",
-    "underscore.string": "^3.0.3"
+    "bluebird": "^2.9.34",
+    "lodash": "^3.10.1",
+    "npm": "^2.6.0"
   }
 }
