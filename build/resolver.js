@@ -76,5 +76,5 @@ exports.lookup = function() {
     return fs.readdirAsync(directory).filter(function(file) {
       return fs.existsSync(path.join(directory, file, 'package.json'));
     });
-  }).then(_.flatten);
+  }).then(_.flatten).then(_.uniq);
 };
