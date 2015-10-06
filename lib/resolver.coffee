@@ -67,3 +67,4 @@ exports.lookup = ->
 			return fs.readdirAsync(directory).filter (file) ->
 				return fs.existsSync(path.join(directory, file, 'package.json'))
 		.then(_.flatten)
+		.then(_.uniq)
