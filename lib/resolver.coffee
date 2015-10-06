@@ -23,11 +23,32 @@ THE SOFTWARE.
 ###
 
 Promise = require('bluebird')
-npm = Promise.promisifyAll(require('npm'))
+fs = Promise.promisifyAll(require('fs'))
 _ = require('lodash')
+path = require('path')
+yeomanResolver = require('yeoman-environment/lib/resolver')
 
 ###*
-# @summary Lookup globally installed npm modules
+# @summary Get node_modules paths
+# @function
+# @protected
+#
+# @returns {String[]} node_modules paths
+#
+# @example
+# paths = resolver.getNodeModulesPaths()
+###
+exports.getNodeModulesPaths = ->
+	paths = yeomanResolver.getNpmPaths()
+
+	# Handle NVM
+	if process.env.NVM_BIN?
+		paths.unshift(path.resolve(process.env.NVM_BIN, '..', 'lib', 'node_modules'))
+
+	return paths
+
+###*
+# @summary Lookup installed npm modules
 # @function
 # @protected
 #
@@ -39,13 +60,10 @@ _ = require('lodash')
 # 		console.log(plugin)
 ###
 exports.lookup = ->
-	npm.loadAsync
-		depth: 0
-		parseable: true
-		loglevel: 'silent'
-		global: true
-	.then (instance) ->
-		Promise.fromNode (callback) ->
-			instance.commands.list([], true, callback)
-	.spread (data) ->
-		return _.compact(_.pluck(_.values(data.dependencies), 'name'))
+	Promise.try(exports.getNodeModulesPaths)
+		.filter (directory) ->
+			return fs.existsSync(directory)
+		.map (directory) ->
+			return fs.readdirAsync(directory).filter (file) ->
+				return fs.existsSync(path.join(directory, file, 'package.json'))
+		.then(_.flatten)

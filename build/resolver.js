@@ -22,17 +22,42 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
  */
-var Promise, npm, _;
+var Promise, fs, path, yeomanResolver, _;
 
 Promise = require('bluebird');
 
-npm = Promise.promisifyAll(require('npm'));
+fs = Promise.promisifyAll(require('fs'));
 
 _ = require('lodash');
 
+path = require('path');
+
+yeomanResolver = require('yeoman-environment/lib/resolver');
+
 
 /**
- * @summary Lookup globally installed npm modules
+ * @summary Get node_modules paths
+ * @function
+ * @protected
+ *
+ * @returns {String[]} node_modules paths
+ *
+ * @example
+ * paths = resolver.getNodeModulesPaths()
+ */
+
+exports.getNodeModulesPaths = function() {
+  var paths;
+  paths = yeomanResolver.getNpmPaths();
+  if (process.env.NVM_BIN != null) {
+    paths.unshift(path.resolve(process.env.NVM_BIN, '..', 'lib', 'node_modules'));
+  }
+  return paths;
+};
+
+
+/**
+ * @summary Lookup installed npm modules
  * @function
  * @protected
  *
@@ -45,16 +70,11 @@ _ = require('lodash');
  */
 
 exports.lookup = function() {
-  return npm.loadAsync({
-    depth: 0,
-    parseable: true,
-    loglevel: 'silent',
-    global: true
-  }).then(function(instance) {
-    return Promise.fromNode(function(callback) {
-      return instance.commands.list([], true, callback);
+  return Promise["try"](exports.getNodeModulesPaths).filter(function(directory) {
+    return fs.existsSync(directory);
+  }).map(function(directory) {
+    return fs.readdirAsync(directory).filter(function(file) {
+      return fs.existsSync(path.join(directory, file, 'package.json'));
     });
-  }).spread(function(data) {
-    return _.compact(_.pluck(_.values(data.dependencies), 'name'));
-  });
+  }).then(_.flatten);
 };
