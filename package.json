@@ -39,6 +39,6 @@
   "dependencies": {
     "bluebird": "^2.9.34",
     "lodash": "^3.10.1",
-    "npm": "^2.6.0"
+    "yeoman-environment": "^1.2.7"
   }
 }
