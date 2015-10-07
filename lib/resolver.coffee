@@ -25,6 +25,7 @@ THE SOFTWARE.
 Promise = require('bluebird')
 fs = Promise.promisifyAll(require('fs'))
 _ = require('lodash')
+os = require('os')
 path = require('path')
 yeomanResolver = require('yeoman-environment/lib/resolver')
 
@@ -40,6 +41,9 @@ yeomanResolver = require('yeoman-environment/lib/resolver')
 ###
 exports.getNodeModulesPaths = ->
 	paths = yeomanResolver.getNpmPaths()
+
+	if os.platform() isnt 'win32'
+		paths.unshift('/usr/local/lib/node_modules')
 
 	# Handle NVM
 	if process.env.NVM_BIN?

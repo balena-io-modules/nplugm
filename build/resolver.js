@@ -22,13 +22,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
  */
-var Promise, fs, path, yeomanResolver, _;
+var Promise, fs, os, path, yeomanResolver, _;
 
 Promise = require('bluebird');
 
 fs = Promise.promisifyAll(require('fs'));
 
 _ = require('lodash');
+
+os = require('os');
 
 path = require('path');
 
@@ -49,6 +51,9 @@ yeomanResolver = require('yeoman-environment/lib/resolver');
 exports.getNodeModulesPaths = function() {
   var paths;
   paths = yeomanResolver.getNpmPaths();
+  if (os.platform() !== 'win32') {
+    paths.unshift('/usr/local/lib/node_modules');
+  }
   if (process.env.NVM_BIN != null) {
     paths.unshift(path.resolve(process.env.NVM_BIN, '..', 'lib', 'node_modules'));
   }
