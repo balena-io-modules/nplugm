@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.3] - 2015-10-07
+
+### Changed
+
+- Scan `/usr/local/lib/node_modules` for plugins.
+
 ## [3.0.2] - 2015-10-06
 
 ### Changed
@@ -65,6 +71,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 - Move `fs-plus` from dev depedencies to dependencies.
 
+[3.0.3]: https://github.com/resin-io/nplugm/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/resin-io/nplugm/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/resin-io/nplugm/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/resin-io/nplugm/compare/v2.2.0...v3.0.0
