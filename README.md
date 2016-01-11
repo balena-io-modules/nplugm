@@ -6,6 +6,8 @@ nplugm
 [![Build Status](https://travis-ci.org/resin-io/nplugm.svg?branch=master)](https://travis-ci.org/resin-io/nplugm)
 [![Build status](https://ci.appveyor.com/api/projects/status/1wck263ph9j4rq4v?svg=true)](https://ci.appveyor.com/project/jviotti/nplugm)
 
+Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.png)](https://gitter.im/resin-io/chat)
+
 NPM based plugin framework for NodeJS.
 
 Introduction

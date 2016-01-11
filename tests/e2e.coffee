@@ -8,8 +8,11 @@ tests = [
 	->
 		console.log('It should list globally installed modules')
 
+		shell.exec('npm uninstall --global generator-angular', silent: true)
+		shell.exec('npm uninstall --global generator-polymer', silent: true)
+
 		# Install dependencies
-		shell.exec('npm install --global generator-generator', silent: true)
+		shell.exec('npm install --global generator-angular', silent: true)
 		shell.exec('npm install --global generator-polymer', silent: true)
 
 		nplugm.list(/^generator-(.+)$/).then (plugins) ->
