@@ -42,6 +42,9 @@ yeomanResolver = require('yeoman-environment/lib/resolver')
 exports.getNodeModulesPaths = ->
 	paths = yeomanResolver.getNpmPaths()
 
+	# Scan directory where nplugm come from
+	paths.push(path.resolve(require.resolve('nplugm'), '..', '..', '..'))
+
 	if os.platform() isnt 'win32'
 		paths.unshift('/usr/local/lib/node_modules')
 
