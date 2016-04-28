@@ -51,6 +51,7 @@ yeomanResolver = require('yeoman-environment/lib/resolver');
 exports.getNodeModulesPaths = function() {
   var paths;
   paths = yeomanResolver.getNpmPaths();
+  paths.push(path.resolve(require.resolve('nplugm'), '..', '..', '..'));
   if (os.platform() !== 'win32') {
     paths.unshift('/usr/local/lib/node_modules');
   }
