@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.5] - 2016-07-06
+
+### Changed
+
+- Lock `yeoman-environment` to v1.2.6.
+
 ## [3.0.4] - 2016-04-28
 
 ### Changed
@@ -77,6 +83,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 - Move `fs-plus` from dev depedencies to dependencies.
 
+[3.0.5]: https://github.com/resin-io/nplugm/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/resin-io/nplugm/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/resin-io/nplugm/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/resin-io/nplugm/compare/v3.0.1...v3.0.2
